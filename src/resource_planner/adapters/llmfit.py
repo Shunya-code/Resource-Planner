@@ -412,11 +412,42 @@ class LlmfitProvider:
         match: dict[str, Any] | None,
     ) -> None:
 
+        # --------------------------------------------------------
+        # NO LLMFIT MATCH
+        #
+        # Do not leave the candidate looking like it was evaluated.
+        # Preserve the candidate, but explicitly record that LLMFit
+        # has no resource evidence for it.
+        # --------------------------------------------------------
+
         if not match:
+
+            metadata = getattr(
+                candidate,
+                "metadata",
+                None,
+            )
+
+            if not isinstance(metadata, dict):
+                metadata = {}
+
+            metadata["llmfit"] = {
+                "matched": False,
+                "evaluation_status": "not_evaluated",
+            }
+
+            self._safe_set(
+                candidate,
+                "metadata",
+                metadata,
+            )
+
             return
 
         # --------------------------------------------------------
-        # Core LLMFit evaluation
+        # MATCHED BY LLMFIT
+        #
+        # Existing behavior remains unchanged.
         # --------------------------------------------------------
 
         self._safe_set(
@@ -583,13 +614,6 @@ class LlmfitProvider:
 
         # --------------------------------------------------------
         # COMPLETE LLMFIT RECORD
-        #
-        # This is the important integration point.
-        # WorkloadEvaluator and planner.py can retrieve all
-        # provider-specific information from:
-        #
-        #     candidate.metadata["llmfit"]
-        #
         # --------------------------------------------------------
 
         metadata = getattr(
@@ -601,10 +625,15 @@ class LlmfitProvider:
         if not isinstance(metadata, dict):
             metadata = {}
 
-        metadata["llmfit"] = dict(match)
+        metadata["llmfit"] = {
+            **match,
+            "matched": True,
+            "evaluation_status": "evaluated",
+        }
 
         self._safe_set(
             candidate,
             "metadata",
             metadata,
         )
+

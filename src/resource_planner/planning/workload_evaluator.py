@@ -34,6 +34,60 @@ class WorkloadEvaluator:
         requirements: list[str] = []
         evidence: list[Evidence] = list(fit.evidence)
 
+        # -----------------------------------------------------
+        # LLMFit resource evidence
+        #
+        # A candidate without an LLMFit match has not actually
+        # been resource-evaluated. Missing resource data must
+        # therefore not be interpreted as "compatible".
+        # -----------------------------------------------------
+
+        llmfit_metadata = fit.metadata
+
+        llmfit_matched = llmfit_metadata.get(
+            "matched"
+        )
+
+        evaluation_status = llmfit_metadata.get(
+            "evaluation_status"
+        )
+
+        if (
+            llmfit_matched is False
+            or evaluation_status == "not_evaluated"
+        ):
+            return {
+                "status": "unknown",
+
+                "model_id": model.model_id,
+
+                "artifact_id": fit.artifact_id,
+
+                "configuration": ExecutionConfiguration(
+                    runtime=None,
+                    quantization=None,
+                    precision=None,
+                    gpu_count=environment.gpu_count,
+                    cpu_offload=False,
+                    context_length=workload.context_length,
+                ),
+
+                "fit": fit,
+
+                "requirements": requirements,
+
+                "warnings": [
+                    "No LLMFit resource match was found; "
+                    "resource compatibility was not evaluated."
+                ],
+
+                "evidence": evidence,
+
+                "estimated_tokens_per_second": None,
+
+                "estimated_latency_ms": None,
+            }
+
         compatible = True
         uncertain = False
 
